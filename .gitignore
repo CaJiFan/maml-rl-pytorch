@@ -1,0 +1,28 @@
+# Ignore the virtual environment directory
+# Common names are 'venv' or '.venv'
+venv/
+.venv/
+.env_maml/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+
+# Ignore other common Python build/distribution files
+*.egg-info/
+.Python
+build/
+dist/
+
+# Ignore temporary files
+*.tmp
+*.bak
+*~
+
+# Ignore OS generated files
+.DS_Store    # macOS
+Thumbs.db    # Windows
+
+# Ignore environment files (if you use a .env file for configuration)
+.env
+.env.*

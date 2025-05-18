@@ -1,0 +1,8 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==1.4
+gym[mujoco]==0.21.0
+tqdm==4.1.0
+pyyaml>=5.1
+pip install mujoco-py==2.1.2.14
+#gymnasium[mujoco]>=0.29.1
+#mujoco>=3.0.0
