@@ -1,13 +1,60 @@
 #!/bin/bash
 
-#python train.py --config configs/maml/halfcheetah-vel.yaml --output-folder weights/ppo/maml-halfcheetah-vel --seed 1 --num-workers 8
-# python train.py --config configs/maml/halfcheetah-dir.yaml --output-folder weights/ppo/maml-halfcheetah-dir --seed 1 --num-workers 8
-python train.py --config configs/maml/2d-navigation.yaml --output-folder weights/trpo/2d-navigation/10 --seed 1 --num-workers 8
-#python train.py --config configs/maml/ant-dir.yaml --output-folder weights/ant-dir --seed 1 --num-workers 8
-#python train.py --config configs/maml/ant-goal.yaml --output-folder weights/ant-goal --seed 1 --num-workers 8
-#python train.py --config configs/maml/ant-vel.yaml --output-folder weights/ant-vel --seed 1 --num-workers 8
-# python train.py --config configs/maml/bandit/bandit-k10-n100.yaml --output-folder weights/ppo/bandit-k10-n100 --seed 1 --num-workers 8 
-# python train.py --config configs/maml/bandit/bandit-k50-n100.yaml --output-folder weights/ppo/bandit-k50-n100 --seed 1 --num-workers 8        
-# python train.py --config configs/maml/bandit/bandit-k5-n100.yaml --output-folder weights/ppo/bandit-k5-n100 --seed 1 --num-workers 8
+# Default values
+model="trpo"
+cfg_path="configs/maml"
 
-echo "All envs done!..."
+# Get parameters from CLI
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --env) ENV="$2"; shift ;;
+        --model) model="$2"; shift ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+# Derived output path
+out_path="weights/${model}"
+
+if [[ -z "$ENV" ]]; then
+    echo "Please provide an --env parameter (e.g., --env halfcheetah-vel)"
+    exit 1
+fi
+
+if [[ "$ENV" == "halfcheetah-vel" ]]; then
+    for batch in 10 200 500; do
+        python train.py --config "${cfg_path}/halfcheetah-vel.yaml" --output-folder "${out_path}/halfcheetah-vel/${batch}" --seed 1 --num-workers 6 --num-batches $batch
+    done
+elif [[ "$ENV" == "halfcheetah-dir" ]]; then
+    for batch in 500; do
+        python train.py --config "${cfg_path}/halfcheetah-dir.yaml" --output-folder "${out_path}/halfcheetah-dir/${batch}" --seed 1 --num-workers 6 --num-batches $batch
+    done
+
+elif [[ "$ENV" == "2d-navigation" ]]; then
+    for batch in 10 200 500; do
+        python train.py --config "${cfg_path}/2d-navigation.yaml" --output-folder "${out_path}/2d-navigation/${batch}" --seed 1 --num-workers 6 --num-batches $batch
+    done
+
+elif [[ "$ENV" == "bandit-k10-n100" ]]; then
+    for batch in 10 200 500; do
+        python train.py --config "${cfg_path}/bandit/bandit-k10-n100.yaml" --output-folder "${out_path}/bandit-k10-n100/${batch}" --seed 1 --num-workers 6 --num-batches $batch
+    done
+
+elif [[ "$ENV" == "bandit-k5-n100" ]]; then
+    for batch in 10 200 500; do
+        python train.py --config "${cfg_path}/bandit/bandit-k5-n100.yaml" --output-folder "${out_path}/bandit-k5-n100/${batch}" --seed 1 --num-workers 6 --num-batches $batch
+    done
+
+elif [[ "$ENV" == "bandit-k50-n100" ]]; then
+    for batch in 10 200 500; do
+        python train.py --config "${cfg_path}/bandit/bandit-k50-n100.yaml" --output-folder "${out_path}/bandit-k50-n100/${batch}" --seed 1 --num-workers 6 --num-batches $batch
+    done
+
+else
+    echo "Unknown env: $ENV"
+    exit 1
+fi
+
+
+echo "Training for env='$ENV' with model='$model' complete!"

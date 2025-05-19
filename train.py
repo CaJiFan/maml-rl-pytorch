@@ -56,19 +56,22 @@ def main(args):
                                seed=args.seed,
                                num_workers=args.num_workers)
 
-    # metalearner = MAMLTRPO(policy,
-    #                        fast_lr=config['fast-lr'],
-    #                        first_order=config['first-order'],
-    #                        device=args.device)
-    metalearner = MAMLPPO(policy,
-                        fast_lr=config['fast-lr'],
-                        first_order=config['first-order'],
-                        device=args.device)
+    if args.model == 'trpo':
+        metalearner = MAMLTRPO(policy,
+                               fast_lr=config['fast-lr'],
+                               first_order=config['first-order'],
+                               device=args.device)
+    elif args.model == 'ppo':
+        metalearner = MAMLPPO(policy,
+                            fast_lr=config['fast-lr'],
+                            first_order=config['first-order'],
+                            device=args.device)
     
     # print('after MAMLTRPO')
 
     num_iterations = 0 
-    for batch in trange(config['num-batches']):
+    # for batch in trange(config['num-batches']):
+    for batch in trange(args.num_batches):
         # print('batch', batch)
         tasks = sampler.sample_tasks(num_tasks=config['meta-batch-size'])
         # print('after sample_tasks')
@@ -78,16 +81,16 @@ def main(args):
                                        gamma=config['gamma'],
                                        gae_lambda=config['gae-lambda'],
                                        device=args.device)
-        # print('after sample_async')
-        # logs = metalearner.step(*futures,
-        #                         max_kl=config['max-kl'],
-        #                         cg_iters=config['cg-iters'],
-        #                         cg_damping=config['cg-damping'],
-        #                         ls_max_steps=config['ls-max-steps'],
-        #                         ls_backtrack_ratio=config['ls-backtrack-ratio'])
         
-        logs = metalearner.step(*futures)
-        # print('step', logs)
+        if args.model == 'trpo':
+            logs = metalearner.step(*futures,
+                                    max_kl=config['max-kl'],
+                                    cg_iters=config['cg-iters'],
+                                    cg_damping=config['cg-damping'],
+                                    ls_max_steps=config['ls-max-steps'],
+                                    ls_backtrack_ratio=config['ls-backtrack-ratio'])
+        elif args.model == 'ppo':    
+            logs = metalearner.step(*futures)
 
         train_episodes, valid_episodes = sampler.sample_wait(futures)
         num_iterations += sum(sum(episode.lengths) for episode in train_episodes[0])
@@ -119,6 +122,14 @@ if __name__ == '__main__':
         help='name of the output folder')
     misc.add_argument('--seed', type=int, default=None,
         help='random seed')
+    
+    misc.add_argument('--num-batches', type=int, default=None,
+        help='Number of outer-loop updates (batches of tasks)')
+    
+    misc.add_argument('--model', type=str, default="trpo",
+        help='MetaLearner to use: trpo or ppo')
+    
+
     misc.add_argument('--num-workers', type=int, default=mp.cpu_count() - 1,
         help='number of workers for trajectories sampling (default: '
              '{0})'.format(mp.cpu_count() - 1))

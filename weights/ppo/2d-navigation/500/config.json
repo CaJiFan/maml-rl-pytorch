@@ -15,7 +15,7 @@
   "fast-batch-size": 20,
   "num-steps": 1,
   "fast-lr": 0.1,
-  "num-batches": 500,
+  "num-batches": 10,
   "meta-batch-size": 20,
   "max-kl": 0.01,
   "cg-iters": 10,
@@ -23,9 +23,11 @@
   "ls-max-steps": 15,
   "ls-backtrack-ratio": 0.8,
   "config": "configs/maml/2d-navigation.yaml",
-  "output_folder": "ppo/2d-navigation",
+  "output_folder": "weights/ppo/2d-navigation/500",
   "seed": 1,
-  "num_workers": 8,
+  "num_batches": 500,
+  "model": "trpo",
+  "num_workers": 2,
   "use_cuda": false,
   "device": "cpu"
 }

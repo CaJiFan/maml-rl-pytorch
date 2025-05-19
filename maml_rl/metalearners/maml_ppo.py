@@ -109,7 +109,7 @@ from maml_rl.utils.torch_utils import (weighted_mean, detach_distribution,
 from maml_rl.utils.optimization import conjugate_gradient # TRPO specific, not needed for PPO outer
 from maml_rl.utils.reinforcement_learning import reinforce_loss # Inner loop loss
 
-class MAML_PPO(GradientBasedMetaLearner):
+class MAMLPPO(GradientBasedMetaLearner):
     """Model-Agnostic Meta-Learning (MAML, [1]) for Reinforcement Learning
     application, with an outer-loop optimization based on Proximal Policy
     Optimization (PPO, [2]).

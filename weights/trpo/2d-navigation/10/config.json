@@ -25,7 +25,9 @@
   "config": "configs/maml/2d-navigation.yaml",
   "output_folder": "weights/trpo/2d-navigation/10",
   "seed": 1,
-  "num_workers": 8,
+  "num_batches": 10,
+  "model": "trpo",
+  "num_workers": 2,
   "use_cuda": false,
   "device": "cpu"
 }

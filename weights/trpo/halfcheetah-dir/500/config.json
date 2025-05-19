@@ -1,8 +1,8 @@
 {
-  "env-name": "2DNavigation-v0",
+  "env-name": "HalfCheetahDir-v2",
   "env-kwargs": {
-    "low": -0.5,
-    "high": 0.5
+    "normalization_scale": 10.0,
+    "max_episode_steps": 100
   },
   "gamma": 0.99,
   "gae-lambda": 1.0,
@@ -15,19 +15,19 @@
   "fast-batch-size": 20,
   "num-steps": 1,
   "fast-lr": 0.1,
-  "num-batches": 10,
-  "meta-batch-size": 20,
+  "num-batches": 500,
+  "meta-batch-size": 40,
   "max-kl": 0.01,
   "cg-iters": 10,
   "cg-damping": 1e-05,
   "ls-max-steps": 15,
   "ls-backtrack-ratio": 0.8,
-  "config": "configs/maml/2d-navigation.yaml",
-  "output_folder": "weights/trpo/2d-navigation/200",
+  "config": "configs/maml/halfcheetah-dir.yaml",
+  "output_folder": "weights/trpo/halfcheetah-dir/500",
   "seed": 1,
-  "num_batches": 200,
+  "num_batches": 500,
   "model": "trpo",
-  "num_workers": 2,
+  "num_workers": 6,
   "use_cuda": false,
   "device": "cpu"
 }
