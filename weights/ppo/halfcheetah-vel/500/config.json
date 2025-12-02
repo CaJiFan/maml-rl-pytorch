@@ -1,5 +1,5 @@
 {
-  "env-name": "HalfCheetahVel-v2",
+  "env-name": "HalfCheetahVel-v4",
   "env-kwargs": {
     "low": 0.0,
     "high": 2.0,

@@ -1,5 +1,5 @@
 {
-  "env-name": "HalfCheetahVel-v2",
+  "env-name": "HalfCheetahVel-v4",
   "env-kwargs": {
     "low": 0.0,
     "high": 2.0,
@@ -29,7 +29,7 @@
   "seed": 1,
   "num_batches": 500,
   "model": "trpo",
-  "num_workers": 6,
+  "num_workers": 8,
   "use_cuda": false,
-  "device": "cpu"
+  "device": "mps"
 }

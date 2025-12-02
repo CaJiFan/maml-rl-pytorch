@@ -1,7 +1,7 @@
 import pytest
 
 import numpy as np
-import gym
+import gymnasium as gym
 
 import maml_rl.envs
 from maml_rl.samplers import MultiTaskSampler

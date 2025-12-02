@@ -1,7 +1,7 @@
 # General
 # -------
 # Name of the environment.
-env-name: "HalfCheetahDir-v2"
+env-name: "HalfCheetahDir-v4"
 
 # Additional parameters for the environment (eg. bound for task sampling).
 env-kwargs:

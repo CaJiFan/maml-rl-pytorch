@@ -1,115 +1,16 @@
-# import torch
-# import torch.nn.functional as F
-
-# from torch.nn.utils.convert_parameters import parameters_to_vector, vector_to_parameters
-# from torch.distributions.kl import kl_divergence
-
-# from maml_rl.metalearners.base import GradientBasedMetaLearner
-# from maml_rl.utils.reinforcement_learning import reinforce_loss
-# from maml_rl.utils.torch_utils import weighted_mean, detach_distribution, to_numpy
-
-
-# class MAMLPPO(GradientBasedMetaLearner):
-#     """
-#     MAML with PPO (Proximal Policy Optimization) as the outer-loop optimizer.
-
-#     Parameters:
-#     ----------
-#     policy : torch.nn.Module
-#         Policy network returning a distribution over actions.
-#     fast_lr : float
-#         Learning rate for the inner loop adaptation.
-#     clip_eps : float
-#         PPO clipping epsilon.
-#     ent_coef : float
-#         Entropy bonus coefficient.
-#     first_order : bool
-#         If True, uses first-order approximation.
-#     device : str
-#         Device identifier (e.g., 'cpu' or 'cuda').
-#     """
-#     def __init__(
-#             self, 
-#             policy,
-#             fast_lr=0.1, 
-#             clip_eps=0.2, 
-#             ent_coef=0.0, 
-#             first_order=False, 
-#             device='cpu',
-#             outer_lr=1e-3
-#         ):
-#         super().__init__(policy, device=device)
-#         self.fast_lr = fast_lr
-#         self.clip_eps = clip_eps
-#         self.ent_coef = ent_coef
-#         self.first_order = first_order
-#         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=outer_lr)
-
-#     async def adapt(self, train_futures, first_order=None):
-#         if first_order is None:
-#             first_order = self.first_order
-
-#         params = None
-#         for futures in train_futures:
-#             inner_loss = reinforce_loss(self.policy, await futures, params=params)
-#             params = self.policy.update_params(inner_loss, params=params, step_size=self.fast_lr, first_order=first_order)
-
-#         return params
-
-#     async def surrogate_loss(self, train_futures, valid_futures):
-#         params = await self.adapt(train_futures)
-#         valid_episodes = await valid_futures
-
-#         pi = self.policy(valid_episodes.observations, params=params)
-#         with torch.no_grad():
-#             old_pi = detach_distribution(self.policy(valid_episodes.observations))
-
-#         log_ratio = pi.log_prob(valid_episodes.actions) - old_pi.log_prob(valid_episodes.actions)
-#         ratio = torch.exp(log_ratio)
-
-#         clipped_ratio = torch.clamp(ratio, 1.0 - self.clip_eps, 1.0 + self.clip_eps)
-#         surrogate = torch.min(ratio * valid_episodes.advantages, clipped_ratio * valid_episodes.advantages)
-#         loss = -weighted_mean(surrogate, lengths=valid_episodes.lengths)
-
-#         ent = weighted_mean(pi.entropy(), lengths=valid_episodes.lengths)
-#         total_loss = loss - self.ent_coef * ent
-#         kl = weighted_mean(kl_divergence(pi, old_pi), lengths=valid_episodes.lengths)
-
-#         return total_loss.mean(), kl.mean()
-
-#     def step(self, train_futures, valid_futures):
-#         num_tasks = len(train_futures[0])
-#         logs = {}
-
-#         losses, kls = self._async_gather([
-#             self.surrogate_loss(train, valid)
-#             for (train, valid) in zip(zip(*train_futures), valid_futures)
-#         ])
-
-#         total_loss = sum(losses) / num_tasks
-#         self.policy.zero_grad()
-#         total_loss.backward()
-#         self.optimizer.step()
-
-#         logs['loss'] = to_numpy(losses)
-#         logs['kl'] = to_numpy(kls)
-
-#         return logs
-
 import torch
 import torch.nn as nn
 
 from torch.nn.utils.convert_parameters import parameters_to_vector
 from torch.distributions.kl import kl_divergence
 
-from maml_rl.samplers import MultiTaskSampler # Assuming this exists
-from maml_rl.metalearners.base import GradientBasedMetaLearner # Assuming this exists
+from maml_rl.samplers import MultiTaskSampler 
+from maml_rl.metalearners.base import GradientBasedMetaLearner
 from maml_rl.utils.torch_utils import (weighted_mean, detach_distribution,
                                        to_numpy, vector_to_parameters) # Assuming these exist
-from maml_rl.utils.optimization import conjugate_gradient # TRPO specific, not needed for PPO outer
-from maml_rl.utils.reinforcement_learning import reinforce_loss # Inner loop loss
+from maml_rl.utils.reinforcement_learning import reinforce_loss
 
-class MAMLPPO(GradientBasedMetaLearner):
+class MAML_PPO(GradientBasedMetaLearner):
     """Model-Agnostic Meta-Learning (MAML, [1]) for Reinforcement Learning
     application, with an outer-loop optimization based on Proximal Policy
     Optimization (PPO, [2]).

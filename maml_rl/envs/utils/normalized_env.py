@@ -1,10 +1,10 @@
 import numpy as np
-import gym
+import gymnasium as gym
+from gymnasium import spaces 
+from gymnasium import ActionWrapper, ObservationWrapper, RewardWrapper 
 
-from gym import spaces
-
-
-class NormalizedActionWrapper(gym.ActionWrapper):
+# --- Corrected NormalizedActionWrapper ---
+class NormalizedActionWrapper(ActionWrapper):
     """Environment wrapper to normalize the action space to [-1, 1]. This 
     wrapper is adapted from rllab's [1] wrapper `NormalizedEnv`
     https://github.com/rll/rllab/blob/b3a28992eca103cab3cb58363dd7a4bb07f250a0/rllab/envs/normalized_env.py
@@ -14,10 +14,11 @@ class NormalizedActionWrapper(gym.ActionWrapper):
         (https://arxiv.org/abs/1604.06778)
     """
     def __init__(self, env, scale=1.0):
-        super(NormalizedActionWrapper, self).__init__(env)
+        super().__init__(env) # Use modern super() call
         self.scale = scale
+        # Correctly reference the imported spaces module
         self.action_space = spaces.Box(low=-scale, high=scale,
-            shape=self.env.action_space.shape)
+            shape=self.env.action_space.shape, dtype=self.env.action_space.dtype)
 
     def action(self, action):
         # Clip the action in [-scale, scale]
@@ -40,18 +41,14 @@ class NormalizedActionWrapper(gym.ActionWrapper):
         return action
 
 
-class NormalizedObservationWrapper(gym.ObservationWrapper):
+# --- Corrected NormalizedObservationWrapper ---
+class NormalizedObservationWrapper(ObservationWrapper):
     """Environment wrapper to normalize the observations with a running mean 
     and standard deviation. This wrapper is adapted from rllab's [1] 
     wrapper `NormalizedEnv`
-    https://github.com/rll/rllab/blob/b3a28992eca103cab3cb58363dd7a4bb07f250a0/rllab/envs/normalized_env.py
-
-    [1] Yan Duan, Xi Chen, Rein Houthooft, John Schulman, Pieter Abbeel, 
-        "Benchmarking Deep Reinforcement Learning for Continuous Control", 2016 
-        (https://arxiv.org/abs/1604.06778)
     """
     def __init__(self, env, alpha=1e-3, epsilon=1e-8):
-        super(NormalizedObservationWrapper, self).__init__(env)
+        super().__init__(env)
         self.alpha = alpha
         self.epsilon = epsilon
         shape = self.observation_space.shape
@@ -65,18 +62,14 @@ class NormalizedObservationWrapper(gym.ObservationWrapper):
         return (observation - self._mean) / (np.sqrt(self._var) + self.epsilon)
 
 
-class NormalizedRewardWrapper(gym.RewardWrapper):
+# --- Corrected NormalizedRewardWrapper ---
+class NormalizedRewardWrapper(RewardWrapper):
     """Environment wrapper to normalize the rewards with a running mean 
     and standard deviation. This wrapper is adapted from rllab's [1] 
     wrapper `NormalizedEnv`
-    https://github.com/rll/rllab/blob/b3a28992eca103cab3cb58363dd7a4bb07f250a0/rllab/envs/normalized_env.py
-
-    [1] Yan Duan, Xi Chen, Rein Houthooft, John Schulman, Pieter Abbeel, 
-        "Benchmarking Deep Reinforcement Learning for Continuous Control", 2016 
-        (https://arxiv.org/abs/1604.06778)
     """
     def __init__(self, env, alpha=1e-3, epsilon=1e-8):
-        super(NormalizedRewardWrapper, self).__init__(env)
+        super().__init__(env)
         self.alpha = alpha
         self.epsilon = epsilon
         self._mean = 0.0

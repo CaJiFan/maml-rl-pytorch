@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import torch
 import json
 import os
@@ -6,7 +6,7 @@ import yaml
 from tqdm import trange
 
 import maml_rl.envs
-from maml_rl.metalearners import MAMLTRPO, MAMLPPO
+from maml_rl.metalearners import MAMLTRPO, MAML_PPO
 from maml_rl.baseline import LinearFeatureBaseline
 from maml_rl.samplers import MultiTaskSampler
 from maml_rl.utils.helpers import get_policy_for_env, get_input_size
@@ -62,7 +62,7 @@ def main(args):
                                first_order=config['first-order'],
                                device=args.device)
     elif args.model == 'ppo':
-        metalearner = MAMLPPO(policy,
+        metalearner = MAML_PPO(policy,
                             fast_lr=config['fast-lr'],
                             first_order=config['first-order'],
                             device=args.device)
@@ -105,6 +105,18 @@ def main(args):
             with open(policy_filename, 'wb') as f:
                 torch.save(policy.state_dict(), f)
 
+def get_best_device():
+    if torch.backends.mps.is_available():
+        print("Using Apple Metal Performance Shaders (MPS) for GPU acceleration.")
+        return "mps"
+    
+    elif torch.cuda.is_available():
+        print("Using NVIDIA CUDA GPU.")
+        return "cuda"
+    
+    else:
+        print("Using CPU.")
+        return "cpu"
 
 if __name__ == '__main__':
     import argparse
@@ -138,7 +150,6 @@ if __name__ == '__main__':
         'is not guaranteed. Using CPU is encouraged.')
 
     args = parser.parse_args()
-    args.device = ('cuda' if (torch.cuda.is_available()
-                   and args.use_cuda) else 'cpu')
+    args.device = get_best_device()
 
     main(args)

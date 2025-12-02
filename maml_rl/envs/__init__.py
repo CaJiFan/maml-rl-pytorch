@@ -1,4 +1,4 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 
 # Bandit
 # ----------------------------------------
@@ -42,13 +42,13 @@ register(
 )
 
 register(
-    'HalfCheetahVel-v2',
+    'HalfCheetahVel-v4',
     entry_point='maml_rl.envs.utils.wrappers:mujoco_wrapper',
     kwargs={'entry_point': 'maml_rl.envs.mujoco.half_cheetah:HalfCheetahVelEnv'}
 )
 
 register(
-    'HalfCheetahDir-v2',
+    'HalfCheetahDir-v4',
     entry_point='maml_rl.envs.utils.wrappers:mujoco_wrapper',
     kwargs={'entry_point': 'maml_rl.envs.mujoco.half_cheetah:HalfCheetahDirEnv'}
 )

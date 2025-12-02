@@ -23,7 +23,7 @@ def run_policy(env, policy, baseline, num_episodes=20, max_steps=100, gamma=0.99
     
     #Running the batch of episodes
     for episode_id in range(num_episodes):
-        state = env.reset()
+        state, info = env.reset()
         done = False
         step = 0
 
@@ -38,7 +38,9 @@ def run_policy(env, policy, baseline, num_episodes=20, max_steps=100, gamma=0.99
             action = action.flatten().astype(np.float32)
 
             #Taking a step
-            next_state, reward, done, _ = env.step(action)
+            # next_state, reward, done, _ = env.step(action)
+            next_state, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
             batch_episodes.append([state], [action], [reward], [episode_id])
             state = next_state
             step += 1
@@ -60,7 +62,7 @@ def solve_task(env, policy, max_steps=100):
     states = []
     actions = []
     rewards = []
-    state = env.reset()
+    state, info = env.reset()
     done = False
     step = 0
 
@@ -83,7 +85,9 @@ def solve_task(env, policy, max_steps=100):
 
         # Take the action in the environment
         try:
-            next_state, reward, done, info = env.step(action)
+            # next_state, reward, done, info = env.step(action)
+            next_state, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated 
         except AssertionError as e:
             print(f"Action failed: {action}")
             raise e

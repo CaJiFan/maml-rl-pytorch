@@ -1,5 +1,5 @@
 {
-  "env-name": "HalfCheetahDir-v2",
+  "env-name": "HalfCheetahDir-v4",
   "env-kwargs": {
     "normalization_scale": 10.0,
     "max_episode_steps": 100
