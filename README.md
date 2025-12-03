@@ -9,7 +9,7 @@ A comprehensive, modern PyTorch implementation of Model-Agnostic Meta-Learning (
 * **Robust Engineering:** Includes fixes for cross-platform multiprocessing (macOS/Linux compatibility), proper vector environment synchronization, and NumPy 2.0 type safety.
 * **Benchmarking:** Supports standard Meta-RL environments: Multi-armed bandits, 2D Navigation, and MuJoCo continuous control (HalfCheetah, Ant).
 
-This repository is built upon the foundational implementation by [Tristan Deleu](https://github.com/tristandeleu/pytorch-maml-rl), extending it with state-of-the-art algorithms and modern software engineering practices.
+This repository is built upon the foundational implementation by [Tristan Deleu](https://github.com/tristandeleu/pytorch-maml-rl), extending it with state-of-the-art algorithms and modern software libraries.
 
 ## 🛠️ Installation
 
