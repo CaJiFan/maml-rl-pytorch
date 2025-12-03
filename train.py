@@ -6,7 +6,7 @@ import yaml
 from tqdm import trange
 
 import maml_rl.envs
-from maml_rl.metalearners import MAMLTRPO, MAML_PPO
+from maml_rl.metalearners import MAML_TRPO, MAML_PPO
 from maml_rl.baseline import LinearFeatureBaseline
 from maml_rl.samplers import MultiTaskSampler
 from maml_rl.utils.helpers import get_policy_for_env, get_input_size
@@ -57,7 +57,7 @@ def main(args):
                                num_workers=args.num_workers)
 
     if args.model == 'trpo':
-        metalearner = MAMLTRPO(policy,
+        metalearner = MAML_TRPO(policy,
                                fast_lr=config['fast-lr'],
                                first_order=config['first-order'],
                                device=args.device)
@@ -67,7 +67,7 @@ def main(args):
                             first_order=config['first-order'],
                             device=args.device)
     
-    # print('after MAMLTRPO')
+    # print('after MAML_TRPO')
 
     num_iterations = 0 
     # for batch in trange(config['num-batches']):

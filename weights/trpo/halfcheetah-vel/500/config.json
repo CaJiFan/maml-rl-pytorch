@@ -31,5 +31,5 @@
   "model": "trpo",
   "num_workers": 8,
   "use_cuda": false,
-  "device": "mps"
+  "device": "cuda"
 }

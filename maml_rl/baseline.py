@@ -2,43 +2,61 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from collections import OrderedDict
-
 class LinearFeatureBaseline(nn.Module):
-    """Linear baseline based on handcrafted features, as described in [1] 
-    (Supplementary Material 2).
-
-    [1] Yan Duan, Xi Chen, Rein Houthooft, John Schulman, Pieter Abbeel, 
-        "Benchmarking Deep Reinforcement Learning for Continuous Control", 2016 
-        (https://arxiv.org/abs/1604.06778)
+    """
+    Linear baseline based on handcrafted features.
+    Features: [observations, observations^2, time_step, time_step^2, time_step^3, ones]
     """
     def __init__(self, input_size, reg_coeff=1e-5):
         super(LinearFeatureBaseline, self).__init__()
         self.input_size = input_size
         self._reg_coeff = reg_coeff
-
-        self.weight = nn.Parameter(torch.Tensor(self.feature_size,),
-                                   requires_grad=False)
-        self.weight.data.zero_()
-        self._eye = torch.eye(self.feature_size,
-                              dtype=torch.float32,
-                              device=self.weight.device)
-
-    @property
-    def feature_size(self):
-        return 2 * self.input_size + 4
+        
+        # Feature size = 2 * input_size + 4 time features
+        self.feature_size = 2 * input_size + 4
+        
+        # We use nn.Linear for simplicity and efficient parameter management
+        self.linear = nn.Linear(self.feature_size, 1, bias=False)
 
     def _feature(self, episodes):
-        ones = episodes.mask.unsqueeze(2)
-        observations = episodes.observations
-        time_step = torch.arange(len(episodes)).view(-1, 1, 1) * ones / 100.0
+        # FIX 1: Handle both BatchEpisodes (object) and Tensor (raw observations)
+        if torch.is_tensor(episodes):
+            observations = episodes
+            
+            # Handle (Time, Dim) -> (1, Time, Dim)
+            if observations.dim() == 2:
+                observations = observations.unsqueeze(0)
+            elif observations.dim() == 1:
+                # Handle empty or 1D observations (e.g. from empty episodes)
+                # FIX: Reshape using self.input_size to preserve feature dimension
+                observations = observations.view(1, -1, self.input_size)
+            
+            batch_size, seq_len, _ = observations.shape
+            # Default mask of ones for raw tensor input
+            ones = torch.ones((batch_size, seq_len), device=observations.device)
+        else:
+            # BatchEpisodes object
+            observations = episodes.observations
+            ones = episodes.mask
 
+        # Create time features
+        # ones shape: (Batch, Time) -> (Batch, Time, 1)
+        ones = ones.unsqueeze(2)
+        
+        batch_size, seq_len, _ = observations.shape
+        
+        # Time steps: normalized to [0, 1] roughly (div by 100)
+        time_step = torch.arange(seq_len, device=observations.device).float()
+        time_step = time_step.view(1, -1, 1).expand(batch_size, seq_len, 1)
+        time_step = time_step * ones / 100.0
+
+        # FIX 2: Added observations^2 to match original implementation features
         return torch.cat([
             observations,
             observations ** 2,
             time_step,
-            time_step ** 2,
-            time_step ** 3,
+            time_step**2,
+            time_step**3,
             ones
         ], dim=2)
 
@@ -49,34 +67,33 @@ class LinearFeatureBaseline(nn.Module):
         returns = episodes.returns.view(-1, 1)
 
         # Remove blank (all-zero) episodes that only exist because episode lengths vary
-        flat_mask = episodes.mask.flatten()
-        flat_mask_nnz = torch.nonzero(flat_mask)
-        featmat = featmat[flat_mask_nnz].view(-1, self.feature_size)
-        returns = returns[flat_mask_nnz].view(-1, 1)
+        # (This masking logic was in your original code)
+        if hasattr(episodes, 'mask'):
+            flat_mask = episodes.mask.flatten()
+            # Ensure mask is boolean or byte for indexing
+            flat_mask = flat_mask > 0
+            featmat = featmat[flat_mask]
+            returns = returns[flat_mask]
 
+        # Regularization (L2)
         reg_coeff = self._reg_coeff
-        XT_y = torch.matmul(featmat.t(), returns)
-        XT_X = torch.matmul(featmat.t(), featmat)
-        for _ in range(5):
-            try:
-                coeffs, _ = torch.lstsq(XT_y, XT_X + reg_coeff * self._eye)
+        eye = torch.eye(self.feature_size, dtype=torch.float32,
+                        device=self.linear.weight.device)
+        
+        # FIX 3: Modern PyTorch solver (torch.linalg.solve/lstsq)
+        # Solve Normal Equations: (A^T A + lambda I) x = A^T b
+        mat_a = torch.matmul(featmat.t(), featmat) + reg_coeff * eye
+        mat_b = torch.matmul(featmat.t(), returns)
+        
+        try:
+            coeffs = torch.linalg.solve(mat_a, mat_b)
+        except RuntimeError:
+            # Fallback for singular matrix
+            coeffs = torch.linalg.lstsq(mat_a, mat_b).solution
 
-                # An extra round of increasing regularization eliminated
-                # inf or nan in the least-squares solution most of the time
-                if torch.isnan(coeffs).any() or torch.isinf(coeffs).any():
-                    raise RuntimeError
-
-                break
-            except RuntimeError:
-                reg_coeff *= 10
-        else:
-            raise RuntimeError('Unable to solve the normal equations in '
-                '`LinearFeatureBaseline`. The matrix X^T*X (with X the design '
-                'matrix) is not full-rank, regardless of the regularization '
-                '(maximum regularization: {0}).'.format(reg_coeff))
-        self.weight.copy_(coeffs.flatten())
+        # Update linear layer weights
+        self.linear.weight.data.copy_(coeffs.t())
 
     def forward(self, episodes):
         features = self._feature(episodes)
-        values = torch.mv(features.view(-1, self.feature_size), self.weight)
-        return values.view(features.shape[:2])
+        return self.linear(features)

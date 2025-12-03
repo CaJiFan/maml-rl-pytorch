@@ -1,17 +1,19 @@
 import numpy as np
-import gymnasium as gym # Added gymnasium import if needed later
+import gymnasium as gym
 from gymnasium.vector import SyncVectorEnv as SyncVectorEnv_
 from gymnasium.vector.utils import concatenate, create_empty_array
-
 
 class SyncVectorEnv(SyncVectorEnv_):
     def __init__(self,
                  env_fns,
-                 observation_space=None, # Accepts argument from caller
-                 action_space=None,      # Accepts argument from caller
+                 observation_space=None,
+                 action_space=None,
                  **kwargs):
-
-        super(SyncVectorEnv, self).__init__(env_fns, **kwargs) 
+        
+        super(SyncVectorEnv, self).__init__(env_fns, **kwargs)
+        
+        # Initialize internal state
+        self._dones = np.zeros((self.num_envs,), dtype=bool)
         
         for env in self.envs:
             if not hasattr(env.unwrapped, 'reset_task'):
@@ -32,48 +34,55 @@ class SyncVectorEnv(SyncVectorEnv_):
             seed = [None] * self.num_envs
         elif isinstance(seed, int):
             seed = [seed + i for i in range(self.num_envs)]
-        
-        # We call reset() here to apply the seed. Note that reset() returns (obs, info).
-        # We ignore the returns as the caller (.seed()) expects no return or a list of seeds.
         self.reset(seed=seed)
+        return seed
 
-    def step_wait(self):
+    def step(self, actions):
         observations_list, infos = [], []
         batch_ids, j = [], 0
-        num_actions = len(self._actions)
-        rewards = np.zeros((num_actions,), dtype=np.float_)
+        num_actions = len(actions)
+        
+        rewards = np.zeros((num_actions,), dtype=np.float64)
+        terminations = np.zeros((num_actions,), dtype=bool)
+        truncations = np.zeros((num_actions,), dtype=bool)
+        
         for i, env in enumerate(self.envs):
+            # Skip environments that were ALREADY done before this step
             if self._dones[i]:
                 continue
 
-            action = self._actions[j]
-            # observation, rewards[j], self._dones[i], info = env.step(action) # <-- Old gym 4-tuple format
+            action = actions[i]
             
-            # --- FIX: Update step signature to handle gymnasium 5-tuple ---
-            observation, rewards[j], terminated, truncated, info = env.step(action)
+            # Step the environment
+            observation, rewards[i], terminated, truncated, info = env.step(action)
+            
+            terminations[i] = terminated
+            truncations[i] = truncated
+            
+            # Update internal done state
             self._dones[i] = terminated or truncated
-            # --- END FIX ---
             
             batch_ids.append(i)
 
-            if not self._dones[i]:
-                observations_list.append(observation)
-                infos.append(info)
+            # --- FIX: Always append observation/info if we stepped ---
+            # Even if the environment just finished (dones[i] is True), 
+            # we need to return the terminal observation so the sampler 
+            # can record the final transition (s, a, r, s', done).
+            observations_list.append(observation)
+            infos.append(info)
+            # ---------------------------------------------------------
+            
             j += 1
-        assert num_actions == j
 
         if observations_list:
-            # Note: This logic for concatenation and array creation looks correct for NumPy/vector environments
             observations = create_empty_array(self.single_observation_space,
                                               n=len(observations_list),
                                               fn=np.zeros)
-            concatenate(observations_list,
-                        observations,
-                        self.single_observation_space)
+            concatenate(self.single_observation_space, 
+                        observations_list, 
+                        observations)
         else:
-            observations = None
+            observations = np.array([]) 
 
-        # The old gym vector env step_wait returned 4 items: (obs, rewards, dones, infos dict)
-        # Assuming old 4-item return is expected by caller:
-        return (observations, rewards, np.copy(self._dones),
+        return (observations, rewards, terminations, truncations, 
                 {'batch_ids': batch_ids, 'infos': infos})
