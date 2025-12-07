@@ -8,7 +8,7 @@ from maml_rl.metalearners.base import GradientBasedMetaLearner
 from maml_rl.utils.torch_utils import (detach_distribution,
                                        to_numpy, vector_to_parameters)
 from maml_rl.utils.optimization import conjugate_gradient
-from maml_rl.utils.reinforcement_learning import reinforce_loss
+from maml_rl.utils.reinforcement_learning import reinforce_loss, weighted_mean
 
 
 class MAML_TRPO(GradientBasedMetaLearner):
@@ -17,7 +17,6 @@ class MAML_TRPO(GradientBasedMetaLearner):
                  fast_lr=0.5,
                  first_order=False,
                  device='cpu'):
-        super(MAML_TRPO, self).__init__(policy, device=device)
         super(MAML_TRPO, self).__init__(policy, device=device)
         self.fast_lr = fast_lr
         self.first_order = first_order
@@ -68,8 +67,6 @@ class MAML_TRPO(GradientBasedMetaLearner):
             valid_episodes = await valid_futures
             valid_episodes = valid_episodes.to(self.device)
             
-            valid_episodes = valid_episodes.to(self.device)
-            
             pi = self.policy(valid_episodes.observations, params=params)
 
             if old_pi is None:
@@ -101,7 +98,6 @@ class MAML_TRPO(GradientBasedMetaLearner):
 
         old_losses, old_kls, old_pis = self._async_gather([
             self.surrogate_loss(train, valid, old_pi=None)
-            for (train, valid) in zip(train_futures, valid_futures)])
             for (train, valid) in zip(train_futures, valid_futures)])
 
         logs['loss_before'] = to_numpy(old_losses)
@@ -137,7 +133,6 @@ class MAML_TRPO(GradientBasedMetaLearner):
             losses, kls, _ = self._async_gather([
                 self.surrogate_loss(train, valid, old_pi=old_pi)
                 for (train, valid, old_pi)
-                in zip(train_futures, valid_futures, old_pis)])
                 in zip(train_futures, valid_futures, old_pis)])
 
             improve = (sum(losses) / num_tasks) - old_loss
